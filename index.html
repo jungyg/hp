@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hi Proof whiskey catalog</title>
+<style>
+  :root{
+    --paper:#f6f6f4;
+    --ink:#1c1b19;
+    --muted:#6f6c64;
+    --rule:#e0ded7;
+    --glass:#1e4232;      /* bottle green: selection, links */
+    --copper:#a65e2e;     /* reserved for markdowns only */
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--sans);font-size:15px;line-height:1.45}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px}
+
+  header{padding:38px 0 0}
+  h1{font-family:var(--serif);font-weight:600;font-size:31px;
+     letter-spacing:-.01em;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:62ch}
+
+  /* ---- tabs: the one bold element ---------------------------------- */
+  .tabs{display:flex;gap:26px;border-bottom:1px solid var(--rule)}
+  .tabs button{
+    appearance:none;border:0;background:none;cursor:pointer;
+    font:inherit;font-family:var(--serif);font-size:19px;color:var(--muted);
+    padding:0 0 12px;margin-bottom:-1px;border-bottom:2px solid transparent;
+  }
+  .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--glass)}
+  .tabs button:focus-visible{outline:2px solid var(--glass);outline-offset:3px}
+  .tabs .n{font-family:var(--sans);font-size:12.5px;color:var(--muted);
+           margin-left:6px;font-variant-numeric:tabular-nums}
+
+  .blurb{color:var(--muted);font-size:13.5px;padding:14px 0 2px;max-width:70ch}
+
+  /* ---- controls ---------------------------------------------------- */
+  .controls{position:sticky;top:0;z-index:5;background:var(--paper);
+            padding:10px 0;border-bottom:1px solid var(--rule)}
+  .row{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+  .row + .row{margin-top:9px}
+  .lede{font-size:12.5px;color:var(--muted);flex:0 0 62px}
+  input[type=search]{flex:1 1 200px;min-width:0;font:inherit;font-size:14px;
+    padding:7px 11px;border:1px solid var(--rule);border-radius:3px;
+    background:#fff;color:var(--ink)}
+  input[type=search]:focus-visible,button:focus-visible{
+    outline:2px solid var(--glass);outline-offset:1px}
+  button{font:inherit;font-size:13.5px;cursor:pointer;padding:5px 11px;
+    border:1px solid var(--rule);border-radius:3px;background:#fff;color:var(--ink)}
+  button:hover{border-color:#c3c0b6}
+  button[aria-pressed=true]{background:var(--glass);border-color:var(--glass);color:#fff}
+  .sort button{font-weight:500}
+
+  .count{display:flex;align-items:baseline;justify-content:space-between;
+         gap:12px;flex-wrap:wrap;padding:13px 0 4px;font-size:13px;
+         color:var(--muted);font-variant-numeric:tabular-nums}
+  .per{display:flex;gap:5px;align-items:center}
+  .per::before{content:"per page";color:var(--muted);font-size:12.5px;margin-right:2px}
+  .per button{padding:3px 9px;font-size:12.5px}
+
+  /* ---- list -------------------------------------------------------- */
+  ol{list-style:none;margin:0;padding:0}
+  li{display:grid;grid-template-columns:56px 1fr auto;gap:14px;padding:14px 0;
+     border-bottom:1px solid var(--rule);align-items:start}
+  .thumb{width:56px;height:72px;object-fit:contain;background:#fff;
+         border:1px solid var(--rule);border-radius:2px}
+  .noimg{background:#fff;border:1px dashed var(--rule)}
+  .name{font-family:var(--serif);font-size:16.5px;line-height:1.3;
+        color:var(--ink);text-decoration:none;display:inline-block}
+  .name:hover{color:var(--glass);text-decoration:underline}
+  .vendor{font-size:13px;color:var(--muted);margin-top:3px}
+  .spec{margin-top:6px;font-size:12.5px;color:var(--muted);
+        font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:12px}
+  .spec b{font-weight:600;color:#4a4740}
+  .dates b{letter-spacing:.01em}
+  .flag{display:inline-block;margin-top:6px;font-size:12px;color:var(--copper);
+        border:1px solid #e6cdb8;border-radius:2px;padding:1px 6px;background:#fdf6f0}
+
+  .money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .price{font-size:16px;font-weight:600}
+  .retail{font-size:12.5px;color:var(--muted);text-decoration:line-through;margin-top:2px}
+  .off{font-size:12.5px;color:var(--copper);font-weight:600;margin-top:2px}
+  .gone{font-size:12px;color:var(--muted);margin-top:4px}
+  li.out .thumb,li.out .name{opacity:.5}
+
+  .pager{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;padding:18px 0 56px}
+  .pager button{min-width:34px;padding:5px 9px;font-size:13.5px}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .pager button.gap{border:0;background:none;min-width:14px;padding:5px 0}
+
+  .msg{padding:40px 0;color:var(--muted)}
+  footer{border-top:1px solid var(--rule);padding:18px 0 48px;
+         font-size:12.5px;color:var(--muted);max-width:70ch}
+  footer a{color:var(--glass)}
+
+  @media (max-width:560px){
+    header{padding:24px 0 0}
+    h1{font-size:25px}
+    .tabs{gap:18px}
+    .tabs button{font-size:17px}
+    li{grid-template-columns:44px 1fr;gap:11px}
+    .thumb{width:44px;height:58px}
+    .money{grid-column:2;text-align:left;margin-top:4px;display:flex;gap:10px;align-items:baseline}
+    .retail,.off,.gone{margin-top:0}
+    .lede{flex-basis:100%}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Hi Proof whiskey catalog</h1>
+  <p class="sub">Whiskey pulled out of Hi Proof's new arrivals feed, sorted the way you
+  actually shop.</p>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-recent" aria-selected="true">Just landed<span class="n" id="n-recent"></span></button>
+    <button role="tab" id="tab-all" aria-selected="false">All whiskey<span class="n" id="n-all"></span></button>
+  </div>
+</header>
+
+<p class="blurb" id="blurb"></p>
+
+<div class="controls">
+  <div class="row">
+    <input type="search" id="q" placeholder="Search a bottle, distillery or expression" aria-label="Search">
+    <button id="stock" aria-pressed="false">All bottles</button>
+  </div>
+  <div class="row sort" id="sort" role="group" aria-label="Sort by"><span class="lede">Sort</span></div>
+  <div class="row" id="cats" role="group" aria-label="Category"><span class="lede">Category</span></div>
+</div>
+
+<div class="count"><span id="count"></span><span class="per" id="per"></span></div>
+<ol id="list"></ol>
+<nav class="pager" id="pager" aria-label="Pagination"></nav>
+<p class="msg" id="msg">Loading the catalog…</p>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+// Missing values always sink rather than sorting as zero.
+const num = (v, miss = -Infinity) => (v === null || v === undefined ? miss : v);
+const cmpStr = (a,b) => String(a||"").localeCompare(String(b||""));
+
+const SORTS = [
+  ["new",      "Newest arrival",   (a,b)=> cmpStr(b.created, a.created)
+                                        || cmpStr(b.updated, a.updated)],
+  ["touched",  "Recently updated", (a,b)=> cmpStr(b.updated, a.updated)
+                                        || cmpStr(b.created, a.created)],
+  ["discount", "Biggest markdown", (a,b)=> num(b.discount) - num(a.discount)],
+  ["cheap",    "Lowest price",     (a,b)=> num(a.price, Infinity) - num(b.price, Infinity)],
+  ["dear",     "Highest price",    (a,b)=> num(b.price) - num(a.price)],
+  ["proof",    "Highest proof",    (a,b)=> num(b.proof) - num(a.proof)],
+  ["age",      "Oldest age",       (a,b)=> num(b.age) - num(a.age)],
+  ["az",       "A\u2013Z",         (a,b)=> a.title.localeCompare(b.title)],
+];
+
+let META = {}, DATA = [];
+let tab = location.hash === "#all" ? "all" : "recent";
+let sortKey = "new", cat = "All", stock = "all", perPage = 30, page = 1;
+
+const $ = s => document.querySelector(s);
+const money = v => v === null || v === undefined ? "" :
+  "$" + v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const ymd = iso => !iso ? "" : iso.slice(2,4) + iso.slice(5,7) + iso.slice(8,10);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// The tab is a filter on created_at, not a separate dataset.
+const inTab = d => tab === "all" || d.created >= META.cutoff;
+
+function build(){
+  SORTS.forEach(([k,label])=>{
+    const b = document.createElement("button");
+    b.textContent = label; b.dataset.k = k;
+    b.setAttribute("aria-pressed", k === sortKey);
+    b.onclick = ()=>{ sortKey = k; page = 1; sync(); render(); };
+    $("#sort").appendChild(b);
+  });
+
+  ["All", ...new Set(DATA.map(d=>d.category))].filter(Boolean).forEach(c=>{
+    const b = document.createElement("button");
+    b.textContent = c; b.dataset.c = c;
+    b.setAttribute("aria-pressed", c === cat);
+    b.onclick = ()=>{ cat = c; page = 1; sync(); render(); };
+    $("#cats").appendChild(b);
+  });
+
+  [30,50,100].forEach(n=>{
+    const b = document.createElement("button");
+    b.textContent = n; b.dataset.n = n;
+    b.setAttribute("aria-pressed", n === perPage);
+    b.onclick = ()=>{
+      const anchor = (page - 1) * perPage;      // keep position across resize
+      perPage = n; page = Math.floor(anchor / n) + 1;
+      sync(); render();
+    };
+    $("#per").appendChild(b);
+  });
+
+  $("#stock").onclick = e=>{
+    stock = stock === "all" ? "in" : stock === "in" ? "out" : "all";
+    e.target.textContent = {all:"All bottles", in:"In stock", out:"Sold out"}[stock];
+    e.target.setAttribute("aria-pressed", stock !== "all");
+    page = 1; render();
+  };
+  $("#q").oninput = ()=>{ page = 1; render(); };
+
+  $("#tab-recent").onclick = ()=> setTab("recent");
+  $("#tab-all").onclick    = ()=> setTab("all");
+  addEventListener("hashchange", ()=>
+    setTab(location.hash === "#all" ? "all" : "recent"));
+
+  $("#n-recent").textContent = DATA.filter(d=> d.created >= META.cutoff).length;
+  $("#n-all").textContent = DATA.length;
+}
+
+function setTab(next){
+  if (next === tab) return;
+  tab = next; page = 1;
+  // Newest-first is the point of the recent tab; keep the sort otherwise.
+  if (tab === "recent") sortKey = "new";
+  location.hash = tab === "all" ? "#all" : "#recent";
+  sync(); render();
+}
+
+function sync(){
+  $("#tab-recent").setAttribute("aria-selected", tab === "recent");
+  $("#tab-all").setAttribute("aria-selected", tab === "all");
+  $("#blurb").textContent = tab === "recent"
+    ? `Whiskey created in Hi Proof's feed in the last ${META.recentDays} days, newest first. `
+      + `Anything added on or after ${META.cutoff}.`
+    : `Every whiskey in the new arrivals feed, ${DATA.length} bottles, sorted however you like.`;
+  document.querySelectorAll("#sort button")
+    .forEach(b=> b.setAttribute("aria-pressed", b.dataset.k === sortKey));
+  document.querySelectorAll("#cats button")
+    .forEach(b=> b.setAttribute("aria-pressed", b.dataset.c === cat));
+  document.querySelectorAll("#per button")
+    .forEach(b=> b.setAttribute("aria-pressed", +b.dataset.n === perPage));
+}
+
+function pageList(cur, last){
+  if (last <= 7) return Array.from({length:last}, (_,i)=> i+1);
+  const win = new Set([1, last, cur, cur-1, cur+1]);
+  if (cur <= 3) [2,3,4].forEach(n=>win.add(n));
+  if (cur >= last-2) [last-1,last-2,last-3].forEach(n=>win.add(n));
+  const nums = [...win].filter(n=> n>=1 && n<=last).sort((a,b)=>a-b);
+  const out = [];
+  nums.forEach((n,i)=>{ if(i && n - nums[i-1] > 1) out.push("gap"); out.push(n); });
+  return out;
+}
+
+function pager(last){
+  const box = $("#pager");
+  box.innerHTML = "";
+  if (last <= 1) return;
+  const add = (label, n, o={})=>{
+    const b = document.createElement("button");
+    b.textContent = label;
+    if (o.gap){ b.className = "gap"; b.disabled = true; }
+    else if (o.dead){ b.disabled = true; }
+    else { b.onclick = ()=>{ page = n; render();
+                             scrollTo({top:0, behavior:"instant"}); }; }
+    if (n === page && !o.gap) b.setAttribute("aria-pressed","true");
+    if (o.label) b.setAttribute("aria-label", o.label);
+    box.appendChild(b);
+  };
+  add("Prev", page-1, {dead: page === 1, label:"Previous page"});
+  pageList(page, last).forEach(n =>
+    n === "gap" ? add("\u2026", 0, {gap:true}) : add(n, n, {label:"Page "+n}));
+  add("Next", page+1, {dead: page === last, label:"Next page"});
+}
+
+function render(){
+  const q = $("#q").value.trim().toLowerCase();
+  const rows = DATA.filter(d=>{
+    if (!inTab(d)) return false;
+    if (cat !== "All" && d.category !== cat) return false;
+    if (stock === "in"  && !d.available) return false;
+    if (stock === "out" &&  d.available) return false;
+    if (q && !(d.title + " " + d.vendor).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const cmp = SORTS.find(s=>s[0] === sortKey)[2];
+  rows.sort((a,b)=> cmp(a,b) || cmpStr(b.created, a.created)
+                             || a.title.localeCompare(b.title));
+
+  const pages = Math.max(1, Math.ceil(rows.length / perPage));
+  if (page > pages) page = pages;
+  const start = (page - 1) * perPage;
+  const slice = rows.slice(start, start + perPage);
+
+  $("#count").textContent = rows.length
+    ? `${start + 1}\u2013${start + slice.length} of ${rows.length}`
+    : "";
+
+  $("#list").innerHTML = slice.map(d=>{
+    const spec = [
+      d.proof && `<span><b>${d.proof}</b> proof</span>`,
+      d.age   && `<span><b>${d.age}</b> year</span>`,
+      d.size  && `<span>${d.size >= 1000 ? (d.size/1000)+" L" : d.size+" ml"}</span>`,
+      d.type  && `<span>${esc(d.type)}</span>`,
+    ].filter(Boolean).join("");
+    const dates = [
+      d.created && `<span title="Created ${d.created}">added <b>${ymd(d.created)}</b></span>`,
+      d.updated && `<span title="Updated ${d.updated}">upd <b>${ymd(d.updated)}</b></span>`,
+    ].filter(Boolean).join("");
+    return `<li class="${d.available ? "" : "out"}">
+      ${d.image ? `<img class="thumb" src="${esc(d.image)}" alt="" loading="lazy">`
+                : `<div class="thumb noimg"></div>`}
+      <div>
+        <a class="name" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>
+        <div class="vendor">${esc(d.vendor)}</div>
+        ${spec ? `<div class="spec">${spec}</div>` : ""}
+        ${dates ? `<div class="spec dates">${dates}</div>` : ""}
+        ${d.review ? `<span class="flag">No category on the store \u2014 may not be whiskey</span>` : ""}
+      </div>
+      <div class="money">
+        <div class="price">${money(d.price)}</div>
+        ${d.retail ? `<div class="retail">${money(d.retail)}</div>` : ""}
+        ${d.discount ? `<div class="off">${d.discount}% off</div>` : ""}
+        ${d.available ? "" : `<div class="gone">Sold out</div>`}
+      </div>
+    </li>`;
+  }).join("");
+
+  pager(pages);
+  $("#msg").style.display = rows.length ? "none" : "block";
+  if (!rows.length) $("#msg").textContent = tab === "recent"
+    ? "Nothing new in this window. Try All whiskey, or clear the filters."
+    : "Nothing matches those filters. Try clearing the search or picking All.";
+}
+
+fetch("data.json")
+  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d=>{
+    META = d; DATA = d.items || [];
+    build(); sync(); render();
+    $("#foot").innerHTML =
+      `Rebuilt ${new Date(d.built).toLocaleString()} from ${esc(d.scanned)} products in
+       Hi Proof's <a href="${esc(d.source)}" target="_blank" rel="noopener">new arrivals</a>
+       feed. Prices and stock come from that feed and can lag the store, so check the
+       product page before ordering. Bottles the store left uncategorised are shown with
+       a note rather than hidden. Not affiliated with Hi Proof.`;
+  })
+  .catch(e=>{
+    $("#msg").textContent =
+      "Couldn't load data.json (" + e.message + "). Run build_site.py to generate it.";
+  });
+</script>
+</body>
+</html>
