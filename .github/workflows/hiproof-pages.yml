@@ -2,7 +2,7 @@ name: Build Hi Proof whiskey catalog
 
 on:
   schedule:
-    - cron: "0 14 * * *"     # 14:00 UTC daily
+    - cron: "17 * * * *"     # hourly, off the top of the hour when Actions is busiest
   workflow_dispatch:
   push:
     branches: [main]
@@ -12,9 +12,11 @@ permissions:
   pages: write
   id-token: write
 
+# Queue rather than cancel: a run cancelled between deploy and notify would
+# lose its alerts, since the next run diffs against the already-deployed data.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -38,6 +40,16 @@ jobs:
       - name: Report classifier coverage
         run: python build_site.py --audit || true
 
+      # Compare against the site as deployed right now, before this run replaces it.
+      - name: Find whiskey new since the last deploy
+        run: python notify.py diff --out new.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: new-whiskey
+          path: new.json
+          retention-days: 1
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
@@ -51,3 +63,18 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # After deploy, so a failed deploy announces nothing; the next run still
+  # diffs against the old site and picks those bottles up.
+  notify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: new-whiskey
+      - name: Push new whiskey to ntfy
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python3 notify.py send new.json
