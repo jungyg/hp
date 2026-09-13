@@ -2,7 +2,10 @@ name: Build Hi Proof whiskey catalog
 
 on:
   schedule:
-    - cron: "17 * * * *"     # hourly, off the top of the hour when Actions is busiest
+    # Hourly runs are triggered by cron-job.org calling the workflow_dispatch
+    # API, because GitHub's schedule is best-effort and often late. This is
+    # only a backup in case that service stops.
+    - cron: "47 */6 * * *"
   workflow_dispatch:
   push:
     branches: [main]
