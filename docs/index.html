@@ -24,7 +24,12 @@
   header{padding:38px 0 0}
   h1{font-family:var(--serif);font-weight:600;font-size:31px;
      letter-spacing:-.01em;margin:0 0 6px}
-  .sub{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:62ch}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 8px;max-width:62ch}
+  .updated{color:var(--muted);font-size:13px;margin:0 0 22px;min-height:1.45em;
+           font-variant-numeric:tabular-nums}
+  .updated .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+                background:var(--glass);margin-right:7px;vertical-align:1px}
+  .updated.stale .dot{background:var(--muted)}
 
   /* ---- tabs: the one bold element ---------------------------------- */
   .tabs{display:flex;gap:26px;border-bottom:1px solid var(--rule)}
@@ -120,6 +125,7 @@
   <h1>Hi Proof whiskey catalog</h1>
   <p class="sub">Whiskey pulled out of Hi Proof's new arrivals feed, sorted the way you
   actually shop.</p>
+  <p class="updated" id="updated"></p>
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-recent" aria-selected="true">Just landed<span class="n" id="n-recent"></span></button>
     <button role="tab" id="tab-all" aria-selected="false">All whiskey<span class="n" id="n-all"></span></button>
@@ -340,11 +346,37 @@ function render(){
     : "Nothing matches those filters. Try clearing the search or picking All.";
 }
 
+// The build runs hourly, so anything much older means the trigger has stalled.
+const STALE_HOURS = 3;
+
+function ago(iso){
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  const rtf = new Intl.RelativeTimeFormat("en", {numeric:"auto"});
+  if (mins < 1) return "just now";
+  if (mins < 60) return rtf.format(-mins, "minute");
+  const hrs = Math.round(mins / 60);
+  return hrs < 48 ? rtf.format(-hrs, "hour") : rtf.format(-Math.round(hrs / 24), "day");
+}
+
+function showUpdated(){
+  const built = new Date(META.built);
+  const stale = Date.now() - built > STALE_HOURS * 3600e3;
+  const when = built.toLocaleString([], {month:"short", day:"numeric",
+                                         hour:"numeric", minute:"2-digit"});
+  $("#updated").classList.toggle("stale", stale);
+  $("#updated").innerHTML =
+    `<span class="dot"></span>Updated ${ago(META.built)} · ` +
+    `<time datetime="${esc(META.built)}">${esc(when)}</time>` +
+    (stale ? " · hourly updates are running late" : "");
+}
+
 fetch("data.json")
   .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
   .then(d=>{
     META = d; DATA = d.items || [];
     build(); sync(); render();
+    showUpdated();
+    setInterval(showUpdated, 60000);   // keep "N minutes ago" honest on an open tab
     $("#foot").innerHTML =
       `Rebuilt ${new Date(d.built).toLocaleString()} from ${esc(d.scanned)} products in
        Hi Proof's <a href="${esc(d.source)}" target="_blank" rel="noopener">new arrivals</a>
