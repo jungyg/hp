@@ -77,7 +77,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: new-whiskey
-      - name: Push new whiskey to ntfy
+      - name: Announce new whiskey (ntfy, Discord)
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python3 notify.py send new.json
